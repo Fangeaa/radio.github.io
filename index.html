@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fangea Radio</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="https://cdn.discordapp.com/attachments/954039965656961054/1204448401677230130/image.png?ex=65d4c4fc&is=65c24ffc&hm=69621405d0be7b531d77a1c8586715e82b84246813bab7c7ec39d3cd9ac65886&">
+    <style>
+        /* Styl CSS pozostaje bez zmian */
+        body {
+            background-color: #2d2d2d;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #1a1a1a;
+            padding: 0.5em;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 img {
+            margin-right: 10px;
+            width: 90px;
+            height: 90px;
+        }
+
+        h1 span {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5em;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2d2d2d;
+            padding: 20px;
+        }
+
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border: 1px solid #555;
+            border-radius: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav a:hover {
+            background-color: #555;
+        }
+
+        nav a::after {
+            content: url('');
+            margin-left: 10px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .animated-svg {
+            width: 200%;
+            height: auto;
+            cursor: pointer;
+            animation: revealIn 2s ease-in-out;
+        }
+
+        @keyframes revealIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        footer {
+            background-color: #1a1a1a;
+            padding: 1em;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.8em;
+        }
+
+        #audioControls {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            <img id="logo">
+            <span>Fangea Radio</span>
+        </h1>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <nav>
+                <ul>
+                    <li id="homeButton"><a href="index.html">Strona główna</a></li>
+                    <li id="pampersiaButton"><a href="pampersia.html">Pampersia</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Wkrótce</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Wkrótce</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Wkrótce</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <section class="main-content">
+            <a href="https://grumqy.github.io/fangea/strona-glowna">
+                <img class="animated-svg" src="fangeaiinnekontynenty.svg" alt="Animated SVG">
+            </a>
+        </section>
+
+        <aside class="sidebar"></aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Radio Fangea. Nie jesteśmy właścicielami muzyki, wszelkie prawa należą do wytwórni i wykonawców
+            odpowiedzialnych za muzykę.</p>
+    </footer>
+
+    <script>
+        var homeButton = document.getElementById("homeButton");
+        var pampersiaButton = document.getElementById("pampersiaButton");
+
+        homeButton.querySelector('a').style.backgroundImage = "url('your-image1.png')";
+        pampersiaButton.querySelector('a').style.backgroundImage = "url('your-image2.png')";
+
+        var logoImage = document.getElementById('logo');
+        logoImage.src = 'https://cdn.discordapp.com/attachments/954039965656961054/1204448401677230130/image.png?ex=65d4c4fc&is=65c24ffc&hm=69621405d0be7b531d77a1c8586715e82b84246813bab7c7ec39d3cd9ac65886&';
+    </script>
+</body>
+
+</html>
