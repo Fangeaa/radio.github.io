@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noc 2</title>
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      height: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      image-rendering: pixelated;
+      position: absolute;
+      z-index: 1;
+    }
+    #gifContainer {
+      position: absolute;
+      pointer-events: none;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    .gif-container {
+      margin: 10px 0;
+    }
+    .gif-container img {
+      width: 200px;
+      height: auto;
+    }
+    
+    /* Styl ekranu startowego */
+    #startScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    #startScreen button {
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      font-size: 2em;
+      padding: 0.75em 2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    #startScreen button:hover {
+      background-color: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+      transform: scale(1.05);
+    }
+    
+    #noise {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 15;
+      mix-blend-mode: screen;
+    }
+    
+    #fadeOverlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="startScreen">
+    <button id="startButton">Rozpocznij</button>
+  </div>
+  <div id="noise"></div>
+  <div id="fadeOverlay"></div>
+  
+  <canvas id="gameCanvas"></canvas>
+  <div id="gifContainer"></div>
+
+  <!-- Elementy audio -->
+  <audio id="scene1Sound" loop></audio>
+  <audio id="walkingSound"></audio>
+  <audio id="scene2Sound"></audio>
+  <audio id="scene4Sound"></audio>
+  <audio id="blackScreenSound"></audio>
+  <audio id="scene3Ambient"></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const gifContainer = document.getElementById("gifContainer");
+    const startScreen = document.getElementById("startScreen");
+    const startButton = document.getElementById("startButton");
+    const fadeOverlay = document.getElementById("fadeOverlay");
+
+    const scene1Sound = document.getElementById("scene1Sound");
+    const walkingSound = document.getElementById("walkingSound");
+    const scene2Sound = document.getElementById("scene2Sound");
+    const scene4Sound = document.getElementById("scene4Sound");
+    const blackScreenSound = document.getElementById("blackScreenSound");
+    const scene3Ambient = document.getElementById("scene3Ambient");
+
+    scene1Sound.src = "scene1Ambient.mp3";
+    walkingSound.src = "walking.mp3";
+    scene2Sound.src = "scene2.mp3";
+    scene4Sound.src = "scene4.mp3";
+    blackScreenSound.src = "black_screen.mp3";
+    scene3Ambient.src = "scene3Ambient.mp3";
+
+    let scene = 1;
+    let MAP_WIDTH = 32;
+    let MAP_HEIGHT = 16;
+    let TILE_SIZE;
+    let blackScreenActive = false;
+
+    const backgroundImage = new Image();
+    let staticImages = [];
+    let animatedGifs = [];
+
+    function playSound(soundElement, volume = 1.0) {
+      soundElement.currentTime = 0;
+      soundElement.volume = volume;
+      soundElement.play().catch(e => console.log("Autoplay prevented:", e));
+    }
+
+    function stopSound(soundElement) {
+      soundElement.pause();
+      soundElement.currentTime = 0;
+    }
+
+    function createStaticImages() {
+      staticImages = [];
+      if (scene === 1) {
+        staticImages = [
+          { src: "leftTop.png", x: 20, y: 20, image: new Image(), width: 0, height: 0 },
+          { src: "centerTop.png", x: 0, y: 0, image: new Image(), width: 0, height: 0 },
+          { src: "rightBottom.png", x: 0, y: 0, image: new Image(), width: 0, height: 0 }
+        ];
+      }
+
+      staticImages.forEach(obj => {
+        obj.image.src = obj.src;
+        obj.image.onload = () => {
+          obj.width = obj.image.width;
+          obj.height = obj.image.height;
+          resizeCanvas();
+        };
+      });
+    }
+
+    function createAnimatedGifs() {
+      gifContainer.innerHTML = '';
+      animatedGifs = [];
+      blackScreenActive = false;
+
+      if (scene === 3) {
+        const gif1 = document.createElement('img');
+        gif1.src = "anim1.gif";
+        gif1.style.position = "absolute";
+        gif1.style.left = "1200px";
+        gif1.style.top = "330px";
+        gif1.style.width = "120px";
+        gif1.style.height = "160px";
+
+        const gif2 = document.createElement('img');
+        gif2.src = "anim2.gif";
+        gif2.style.position = "absolute";
+        gif2.style.left = "1200px";
+        gif2.style.top = "500px";
+        gif2.style.width = "120px";
+        gif2.style.height = "160px";
+
+        gifContainer.appendChild(gif1);
+        gifContainer.appendChild(gif2);
+
+        animatedGifs = [
+          { element: gif1 },
+          { element: gif2 }
+        ];
+
+        // Start dźwięku ambientu
+        playSound(scene3Ambient, 0.5);
+
+        setTimeout(() => {
+          gifContainer.innerHTML = '';
+          blackScreenActive = true;
+          stopSound(scene3Ambient);
+          playSound(blackScreenSound);
+          render();
+        }, 10000);
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      TILE_SIZE = Math.min(canvas.width / MAP_WIDTH, canvas.height / MAP_HEIGHT);
+
+      if (scene === 1) {
+        const center = staticImages[1];
+        if (center) {
+          center.x = (canvas.width - center.image.width) / 2;
+          center.y = 20;
+        }
+
+        const right = staticImages[2];
+        if (right) {
+          right.x = canvas.width - right.image.width - 20;
+          right.y = canvas.height - right.image.height - 20;
+        }
+      }
+
+      render();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    const player = {
+      x: 10,
+      y: 10,
+      direction: 'down',
+      frame: 0,
+      spriteMap: {
+        up: ["gora1.png", "gora2.png"],
+        down: ["dol1.png", "dol2.png"],
+        left: ["lewo1.png", "lewo2.png"],
+        right: ["prawo1.png", "prawo2.png"]
+      },
+      images: {
+        up: [],
+        down: [],
+        left: [],
+        right: []
+      }
+    };
+
+    for (let dir in player.spriteMap) {
+      player.spriteMap[dir].forEach((src, idx) => {
+        const img = new Image();
+        img.src = src;
+        player.images[dir][idx] = img;
+      });
+    }
+
+    let map = [];
+
+    function canMove(x, y) {
+      if (!map[y] || !map[y][x] || map[y][x] === "#") return false;
+
+      const playerPx = x * TILE_SIZE;
+      const playerPy = y * TILE_SIZE;
+      const playerSize = TILE_SIZE * 1.8;
+
+      if (scene === 1) {
+        for (let obj of staticImages) {
+          const rect = { x: obj.x, y: obj.y, width: obj.width, height: obj.height };
+          if (
+            playerPx < rect.x + rect.width &&
+            playerPx + playerSize > rect.x &&
+            playerPy < rect.y + rect.height &&
+            playerPy + playerSize > rect.y
+          ) return false;
+        }
+      }
+
+      return true;
+    }
+
+    function movePlayer(dx, dy, direction) {
+      const newX = player.x + dx;
+      const newY = player.y + dy;
+      if (canMove(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+        player.direction = direction;
+        player.frame = (player.frame + 1) % player.images[direction].length;
+        playSound(walkingSound, 0.5);
+        render();
+        return true;
+      }
+      return false;
+    }
+
+    function loadScene(sceneId) {
+      stopSound(scene1Sound);
+      stopSound(scene2Sound);
+      stopSound(scene4Sound);
+      stopSound(scene3Ambient);
+
+      scene = sceneId;
+      blackScreenActive = false;
+
+      if (scene === 1) {
+        MAP_WIDTH = 32;
+        MAP_HEIGHT = 16;
+        backgroundImage.src = "background1.png";
+        playSound(scene1Sound, 0.3);
+      } else if (scene === 2) {
+        MAP_WIDTH = 28;
+        MAP_HEIGHT = 12;
+        backgroundImage.src = "background2.png";
+        playSound(scene2Sound, 0.5);
+      } else if (scene === 3) {
+        MAP_WIDTH = 20;
+        MAP_HEIGHT = 12;
+        backgroundImage.src = "background3.png";
+      } else if (scene === 4) {
+        MAP_WIDTH = 20;
+        MAP_HEIGHT = 12;
+        backgroundImage.src = "background4.png";
+        playSound(scene4Sound, 0.5);
+      }
+
+      map = [];
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        let row = "";
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (y === 0 || y === MAP_HEIGHT - 1 || x === 0 || x === MAP_WIDTH - 1) {
+            if (scene === 1) {
+              row += (x === MAP_WIDTH - 1 && y >= 6 && y <= 9) ? "." : "#";
+            } else if (scene === 2) {
+              row += ((x === MAP_WIDTH - 1 || x === 0) && y >= 4 && y <= 7) ? "." : "#";
+            } else {
+              row += "#";
+            }
+          } else {
+            row += ".";
+          }
+        }
+        map.push(row);
+      }
+
+      if (scene === 2 || scene === 3) {
+        player.x = 1;
+        player.y = 6;
+      }
+
+      createStaticImages();
+      createAnimatedGifs();
+      backgroundImage.onload = () => resizeCanvas();
+      if (backgroundImage.complete) resizeCanvas();
+    }
+
+    function drawMap() {
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (map[y][x] === "#") {
+            ctx.fillStyle = "darkgray";
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (blackScreenActive) {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      if (backgroundImage.complete) {
+        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      drawMap();
+
+      if (scene === 1) {
+        staticImages.forEach(obj => {
+          if (obj.image.complete) {
+            ctx.drawImage(obj.image, obj.x, obj.y);
+          }
+        });
+      }
+
+      const img = player.images[player.direction][player.frame];
+      if (img.complete) {
+        const px = player.x * TILE_SIZE;
+        const py = player.y * TILE_SIZE;
+        const scale = TILE_SIZE * 1.8 / img.height;
+        ctx.drawImage(img, px, py, img.width * scale, img.height * scale);
+      }
+    }
+
+    let lastMoveTime = 0;
+    const MOVE_COOLDOWN = 150;
+
+    document.addEventListener('keydown', (e) => {
+      if (blackScreenActive) return;
+      const now = Date.now();
+      if (now - lastMoveTime < MOVE_COOLDOWN) return;
+
+      if (scene === 3 && e.key === "Escape") {
+        loadScene(1);
+        lastMoveTime = now;
+        return;
+      }
+
+      let moved = false;
+      switch (e.key) {
+        case "ArrowUp": moved = movePlayer(0, -1, "up"); break;
+        case "ArrowDown": moved = movePlayer(0, 1, "down"); break;
+        case "ArrowLeft": moved = movePlayer(-1, 0, "left"); break;
+        case "ArrowRight": moved = movePlayer(1, 0, "right"); break;
+      }
+
+      if (moved) {
+        lastMoveTime = now;
+        if (scene === 1 && player.x === MAP_WIDTH - 1 && player.y >= 6 && player.y <= 9) {
+          loadScene(2);
+        } else if (scene === 2) {
+          if (player.x === MAP_WIDTH - 1 && player.y >= 4 && player.y <= 7) {
+            loadScene(3);
+          }
+          if (player.x === 0 && player.y >= 4 && player.y <= 7) {
+            loadScene(1);
+          }
+        }
+      }
+    });
+
+    // Obsługa przycisku startowego
+    startButton.addEventListener('click', () => {
+      // Rozpocznij grę
+      playSound(scene1Sound, 0.3);
+      
+      // Ukryj ekran startowy
+      startScreen.style.display = 'none';
+      fadeOverlay.style.opacity = '0';
+      
+      // Załaduj pierwszą scenę
+      loadScene(1);
+    });
+
+    // Inicjalizacja - ukryj canvas i gifContainer przed rozpoczęciem gry
+    canvas.style.display = 'none';
+    gifContainer.style.display = 'none';
+    
+    // Po kliknięciu przycisku startowego pokaż grę
+    startButton.addEventListener('click', () => {
+      canvas.style.display = 'block';
+      gifContainer.style.display = 'flex';
+      loadScene(1);
+    });
+  </script>
+</body>
+</html>
