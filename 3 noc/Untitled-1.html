@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Noc 3</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: Arial, sans-serif;
+    }
+
+    button {
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 2px solid white;
+      color: white;
+      font-size: 2em;
+      padding: 0.75em 2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    button:hover {
+      background-color: white;
+      color: black;
+      transform: scale(1.05);
+    }
+
+    #jumpscareContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #jumpscareImage {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <button id="startButton">Włącz dźwięk</button>
+
+  <div id="jumpscareContainer">
+    <img id="jumpscareImage" src="" alt="Jumpscare" />
+  </div>
+
+  <!-- Główna muzyka -->
+  <audio id="mainAudio" src="sound.wav"></audio>
+
+  <!-- Dźwięk jumpscare -->
+  <audio id="jumpscareAudio" src="748776__themrangelgames584__jumpscare-sound.ogg"></audio>
+
+  <script>
+    const startButton = document.getElementById('startButton');
+    const mainAudio = document.getElementById('mainAudio');
+    const jumpscareAudio = document.getElementById('jumpscareAudio');
+    const jumpscareContainer = document.getElementById('jumpscareContainer');
+    const jumpscareImage = document.getElementById('jumpscareImage');
+
+    startButton.addEventListener('click', () => {
+      mainAudio.play().catch(e => console.log("Autoplay error:", e));
+      startButton.style.display = 'none';
+    });
+
+    mainAudio.addEventListener('ended', () => {
+      startJumpscare();
+    });
+
+    function startJumpscare() {
+      jumpscareContainer.style.display = 'flex';
+      let frame = 1;
+      const totalFrames = 20;
+      const frameRate = 25;
+
+      jumpscareAudio.play().catch(e => console.log("Jumpscare audio error:", e));
+
+      const interval = setInterval(() => {
+        const frameNumber = frame.toString().padStart(4, '0');
+        jumpscareImage.src = `./${frameNumber}.png`;
+        frame++;
+        if (frame > totalFrames) {
+          clearInterval(interval);
+          setTimeout(() => {
+            try {
+              window.close(); // Zadziała tylko, jeśli otwarte przez window.open
+            } catch (e) {
+              console.log("Nie udało się zamknąć okna:", e);
+            }
+          }, 300); // małe opóźnienie dla pewności
+        }
+      }, frameRate);
+    }
+  </script>
+</body>
+</html>
