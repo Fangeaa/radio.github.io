@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>5 Noc</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+    }
+
+    #startButton {
+      position: relative;
+      z-index: 2;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 2px solid white;
+      color: white;
+      font-size: 2em;
+      padding: 0.75em 2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    #startButton:hover {
+      background-color: white;
+      color: black;
+      transform: scale(1.05);
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      display: none;
+      z-index: 1;
+    }
+
+    #blurBackground {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('klatka.jpg'); /* <- Zmień nazwę pliku jeśli potrzeba */
+      background-size: cover;
+      background-position: center;
+      filter: blur(10px);
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="blurBackground"></div>
+
+  <button id="startButton">Włącz Cutscenkę</button>
+
+  <video id="video" src="cutscenka.mp4" type="video/mp4"></video>
+
+  <script>
+    const startButton = document.getElementById('startButton');
+    const video = document.getElementById('video');
+    const blurBackground = document.getElementById('blurBackground');
+
+    startButton.addEventListener('click', () => {
+      blurBackground.style.display = 'none';
+      video.style.display = 'block';
+      video.play().catch(e => console.log("Autoplay error:", e));
+      startButton.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
