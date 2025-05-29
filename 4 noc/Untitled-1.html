@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noc 4</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000000; overflow: hidden; }
+    canvas { display: none; background: #000000; margin: 0 auto; width: 100vw; height: 100vh; }
+    
+    /* Styl ekranu startowego */
+    #startScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    #startScreen button {
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      font-size: 2em;
+      padding: 0.75em 2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    #startScreen button:hover {
+      background-color: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+      transform: scale(1.05);
+    }
+    
+    #noise {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 15;
+      mix-blend-mode: screen;
+    }
+    
+    #fadeOverlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="startScreen">
+    <button id="startButton">Rozpocznij</button>
+  </div>
+  <div id="noise"></div>
+  <div id="fadeOverlay"></div>
+  
+  <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const ctx = canvas.getContext('2d');
+const startScreen = document.getElementById('startScreen');
+const startButton = document.getElementById('startButton');
+const fadeOverlay = document.getElementById('fadeOverlay');
+
+const SCALE = 2;
+const GRAVITY = 1.2 * SCALE;
+const JUMP_POWER = -20 * SCALE;
+const PLAYER_SPEED = 6 * SCALE;
+let currentScene = 0;
+
+// SPRITES
+const playerSpriteRight = new Image();
+playerSpriteRight.src = 'player_right.png';
+const playerSpriteLeft = new Image();
+playerSpriteLeft.src = 'player_left.png';
+
+const platformImage = new Image();
+platformImage.src = 'platform.png';
+const platformAltImage = new Image();
+platformAltImage.src = 'platform_alt.png';
+const platformFinalImage = new Image();
+platformFinalImage.src = 'platform_final.png';
+
+// DŹWIĘKI
+const music = new Audio('music.wav');
+music.loop = true;
+music.volume = 0.5;
+
+const jumpSound = new Audio('jump.wav');
+jumpSound.volume = 0.7;
+
+const jumpscareSound = new Audio('748776__themrangelgames584__jumpscare-sound.ogg');
+jumpscareSound.volume = 1.0;
+
+const goalSound = new Audio('goal.wav'); // <-- NOWY DŹWIĘK
+goalSound.volume = 0.9;
+
+// JUMPSCARE
+const totalFrames = 20;
+const frameRate = 25;
+const frameDuration = 1000 / frameRate;
+let jumpscareFrames = [];
+let isJumpscare = false;
+let jumpscareFrameIndex = 0;
+let jumpscareTimer = 0;
+
+for (let i = 1; i <= totalFrames; i++) {
+  const img = new Image();
+  img.src = `${String(i).padStart(4, '0')}.png`;
+  jumpscareFrames.push(img);
+}
+
+// GRACZ
+const player = {
+  x: 100 * SCALE,
+  y: canvas.height - 150 * SCALE,
+  width: 30 * SCALE,
+  height: 70 * SCALE,
+  velocityX: 0,
+  velocityY: 0,
+  onGround: false,
+  facing: 'right'
+};
+
+// SCENY
+const scenes = [
+  [
+    { x: 100 * SCALE, y: canvas.height - 30 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 300 * SCALE, y: canvas.height - 150 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 580 * SCALE, y: canvas.height - 50 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 900 * SCALE, y: canvas.height - 200 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 750 * SCALE, y: canvas.height - 100 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 1200 * SCALE, y: canvas.height - 250 * SCALE, width: 80 * SCALE, height: 80 * SCALE }
+  ],
+  [
+    { x: 0 * SCALE, y: canvas.height - 30 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 100 * SCALE, y: canvas.height - 170 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 300 * SCALE, y: canvas.height - 220 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 500 * SCALE, y: canvas.height - 40 * SCALE, width: 80 * SCALE, height: 80 * SCALE },
+    { x: 700 * SCALE, y: canvas.height - 100 * SCALE, width: 80 * SCALE, height: 80 * SCALE }
+  ]
+];
+
+const lastPlatform = {
+  x: 800 * SCALE,
+  y: canvas.height - 250 * SCALE,
+  width: 120 * SCALE,
+  height: 30 * SCALE
+};
+let lastPlatformState = 0;
+
+const keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function update() {
+  if (isJumpscare) return;
+
+  player.velocityX = 0;
+  if (keys['ArrowLeft']) {
+    player.velocityX = -PLAYER_SPEED;
+    player.facing = 'left';
+  }
+  if (keys['ArrowRight']) {
+    player.velocityX = PLAYER_SPEED;
+    player.facing = 'right';
+  }
+  if (keys[' '] && player.onGround) {
+    player.velocityY = JUMP_POWER;
+    player.onGround = false;
+    jumpSound.currentTime = 0;
+    jumpSound.play();
+  }
+
+  player.x += player.velocityX;
+  player.velocityY += GRAVITY;
+  player.y += player.velocityY;
+
+  player.onGround = false;
+
+  for (let plat of scenes[currentScene]) {
+    if (player.x < plat.x + plat.width &&
+        player.x + player.width > plat.x &&
+        player.y < plat.y + plat.height &&
+        player.y + player.height > plat.y) {
+      if (player.velocityY > 0 && player.y + player.height - player.velocityY <= plat.y) {
+        player.y = plat.y - player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+      }
+    }
+  }
+
+  if (currentScene === 1) {
+    const plat = lastPlatform;
+    if (player.x < plat.x + plat.width &&
+        player.x + player.width > plat.x &&
+        player.y < plat.y + plat.height &&
+        player.y + player.height > plat.y) {
+      if (player.velocityY > 0 && player.y + player.height - player.velocityY <= plat.y) {
+        player.y = plat.y - player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+        if (lastPlatformState === 0) {
+          lastPlatformState = 1;
+          goalSound.play(); // <-- Odtwórz dźwięk po raz pierwszy
+        }
+      }
+    }
+  }
+
+  if (player.x + player.width > canvas.width && currentScene === 0) {
+    currentScene++;
+    player.x = 0;
+    player.y = canvas.height - 150 * SCALE;
+    player.velocityY = 0;
+    lastPlatformState = 0;
+  }
+
+  if (player.y > canvas.height) {
+    startJumpscare();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Rysuj scenę
+  for (let plat of scenes[currentScene]) {
+    ctx.drawImage(platformImage, plat.x, plat.y, plat.width, plat.height);
+  }
+
+  if (currentScene === 1) {
+    const imageToUse = lastPlatformState === 0 ? platformAltImage : platformFinalImage;
+    ctx.drawImage(imageToUse, lastPlatform.x, lastPlatform.y, lastPlatform.width, lastPlatform.height);
+  }
+
+  const sprite = player.facing === 'right' ? playerSpriteRight : playerSpriteLeft;
+  ctx.drawImage(sprite, player.x, player.y, player.width, player.height);
+
+  if (isJumpscare) {
+    const now = performance.now();
+    if (jumpscareFrameIndex < totalFrames) {
+      if (now - jumpscareTimer > frameDuration) {
+        jumpscareTimer = now;
+        jumpscareFrameIndex++;
+      }
+    } else {
+      window.close();
+    }
+
+    const frame = jumpscareFrames[jumpscareFrameIndex];
+    if (frame) {
+      ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    }
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+function startJumpscare() {
+  isJumpscare = true;
+  jumpscareFrameIndex = 0;
+  jumpscareTimer = performance.now();
+  music.pause();
+  jumpscareSound.play();
+}
+
+// Obsługa przycisku startowego
+startButton.addEventListener('click', () => {
+  // Rozpocznij grę
+  music.play().catch(() => {});
+  
+  // Ukryj ekran startowy
+  startScreen.style.display = 'none';
+  fadeOverlay.style.opacity = '0';
+  
+  // Pokaż canvas
+  canvas.style.display = 'block';
+  
+  // Rozpocznij pętlę gry
+  gameLoop();
+});
+
+playerSpriteRight.onload = () => {
+  playerSpriteLeft.onload = () => {
+    platformImage.onload = () => {
+      platformAltImage.onload = () => {
+        platformFinalImage.onload = () => {
+          // Game loop będzie uruchamiany po kliknięciu przycisku start
+        };
+      };
+    };
+  };
+};
+</script>
+</body>
+</html>
