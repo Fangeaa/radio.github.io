@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1 Noc</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #background {
+      position: absolute;
+      width: 300%;
+      height: 100%;
+      background-image: url('scene.png');
+      background-size: cover;
+      background-position: center;
+      left: -100%;
+    }
+
+    #mask {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: url('mask.png');
+      background-size: cover;
+      background-position: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #noise {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif');
+      background-size: cover; /* <-- dodano */
+      background-repeat: no-repeat; /* <-- dodano */
+      background-position: center; /* <-- dodano */
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 15;
+      mix-blend-mode: screen;
+}
+
+
+    #fadeOverlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+
+    #startScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    #startScreen button {
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      font-size: 2em;
+      padding: 0.75em 2em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+}
+
+#startScreen button:hover {
+      background-color: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+      transform: scale(1.05);
+}
+
+
+    .audioElement {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    <div id="mask"></div>
+    <div id="noise"></div>
+    <div id="startScreen">
+      <button id="startButton">Rozpocznij</button>
+    </div>
+    <div id="fadeOverlay"></div>
+  </div>
+
+  <!-- Dźwięki -->
+  <audio id="audioElement" class="audioElement" loop preload="auto">
+    <source src="move.wav" type="audio/wav" />
+  </audio>
+
+  <audio id="ambientElement" class="audioElement" loop preload="auto">
+    <source src="ambient.mp3" type="audio/wav" />
+  </audio>
+
+  <audio id="ambientElement2" class="audioElement" loop preload="auto">
+    <source src="ambient2.wav" type="audio/wav" />
+  </audio>
+
+  <audio id="ambientElement3" class="audioElement" preload="auto">
+    <source src="ambient3.mp3" type="audio/wav" />
+  </audio>
+
+  <script>
+    const background = document.getElementById('background');
+    const container = document.getElementById('container');
+    const audioElement = document.getElementById('audioElement');
+    const ambientElement = document.getElementById('ambientElement');
+    const ambientElement2 = document.getElementById('ambientElement2');
+    const ambientElement3 = document.getElementById('ambientElement3');
+    const startScreen = document.getElementById('startScreen');
+    const startButton = document.getElementById('startButton');
+    const fadeOverlay = document.getElementById('fadeOverlay');
+
+    const speed = 0.15;
+    const deadZone = 0.2;
+
+    let currentPosition = -100;
+    let direction = 0;
+    let animationId;
+    let wasMoving = false;
+    let audioStarted = false;
+    let ambientStarted = false;
+    let ambient2Started = false;
+    let ambient3Started = false;
+
+    function updatePosition() {
+      const minPosition = -150;
+      const maxPosition = -50;
+      let isMoving = false;
+
+      if ((direction === -1 && currentPosition > minPosition) ||
+          (direction === 1 && currentPosition < maxPosition)) {
+        currentPosition += speed * direction;
+        background.style.left = currentPosition + '%';
+        isMoving = true;
+      }
+
+      if (isMoving) {
+        if (!wasMoving) {
+          if (!audioStarted) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(e => console.log("Autoplay blocked:", e));
+            audioStarted = true;
+          } else {
+            audioElement.play();
+          }
+        }
+        wasMoving = true;
+      } else {
+        if (wasMoving) {
+          audioElement.pause();
+        }
+        wasMoving = false;
+      }
+
+      animationId = requestAnimationFrame(updatePosition);
+    }
+
+    startButton.addEventListener('click', () => {
+      audioElement.volume = 0.5;
+      ambientElement.volume = 0.3;
+
+      if (!ambientStarted) {
+        ambientElement.play().catch(e => console.log("Ambient autoplay blocked:", e));
+        ambientStarted = true;
+      }
+
+      animationId = requestAnimationFrame(updatePosition);
+
+      startScreen.style.display = 'none';
+      fadeOverlay.style.opacity = '0';
+
+      // Po 20 sekundach: zmiana tła + ambient2
+      setTimeout(() => {
+        background.style.backgroundImage = "url('scene2.png')";
+        if (!ambient2Started) {
+          ambientElement2.volume = 0.3;
+          ambientElement2.play().catch(e => console.log("Ambient2 autoplay blocked:", e));
+          ambient2Started = true;
+        }
+      }, 20000);
+
+      // Po 30 sekundach: czarny ekran + ambient3 + wyciszenie innych
+      setTimeout(() => {
+        container.style.display = 'none';
+        [audioElement, ambientElement, ambientElement2].forEach(audio => {
+          audio.pause();
+          audio.volume = 0;
+        });
+
+        if (!ambient3Started) {
+          ambientElement3.volume = 0.3;
+          ambientElement3.play().catch(e => console.log("Ambient3 autoplay blocked:", e));
+          ambient3Started = true;
+        }
+      }, 30000);
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      const centerX = window.innerWidth / 2;
+      const mouseX = e.clientX;
+      const relativeX = (mouseX - centerX) / centerX;
+      direction = (relativeX < -deadZone) ? 1 : (relativeX > deadZone) ? -1 : 0;
+    });
+
+    container.addEventListener('mouseleave', () => {
+      direction = 0;
+    });
+
+    container.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const centerX = window.innerWidth / 2;
+      const relativeX = (touch.clientX - centerX) / centerX;
+      direction = (relativeX < -deadZone) ? 1 : (relativeX > deadZone) ? -1 : 0;
+    }, { passive: false });
+
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(animationId);
+      [audioElement, ambientElement, ambientElement2, ambientElement3].forEach(audio => {
+        audio.pause();
+      });
+    });
+  </script>
+</body>
+</html>
